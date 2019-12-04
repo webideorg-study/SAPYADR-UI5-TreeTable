@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+  <title>Selection Screen Table Sample</title>
+  <!-- 1.) Load SAPUI5 (from a remote server), select theme and control library -->
+  <script id="sap-ui-bootstrap" src="https://sapui5.hana.ondemand.com/resources/sap-ui-core.js" data-sap-ui-theme="sap_bluecrystal" data-sap-ui-libs="sap.ui.commons,sap.m,sap.ui.unified,sap.ui.table" data-sap-ui-xx-bindingSyntax="complex"></script>
+
+  <!-- 2.) Create a UI5 button and place it onto the page -->
+  <script>
+	var oData = 
+	{
+		root: {
+			name: "root",
+			description: "root description",
+			checked: "Checked",
+			0: {
+				name: "item1",
+				description: "item1 description",
+				checked: "Checked",
+				0: {
+					name: "subitem1-1",
+					description: "subitem1-1 description",
+					checked: "Checked",
+					0: {
+						name: "subsubitem1-1-1",
+						description: "subsubitem1-1-1 description",
+						checked: "Checked"
+					},
+					1: {
+						name: "subsubitem1-1-2",
+						description: "subsubitem1-1-2 description",
+						checked: "Checked"
+					}
+				},
+				1: {
+					name: "subitem1-2",
+					description: "subitem1-2 description",
+					checked: "Checked",
+					0: {
+						name: "subsubitem1-2-1",
+						description: "subsubitem1-2-1 description",
+						checked: "Checked"
+					}
+				}
+	
+			},
+			1: {
+				name: "item2",
+				description: "item2 description",
+				checked: "Mixed",
+				0: {
+					name: "subitem2-1",
+					description: "subitem2-1 description",
+					checked: "Checked"
+				},
+				1: {
+					name: "subitem2-2",
+					description: "subitem2-2 description",
+					checked: "Unchecked"
+				}
+			},
+			2: {
+				name: "item3",
+				description: "item3 description",
+				checked: "Unchecked"
+			}
+	
+		}
+	};
+	
+	//console.log(oData["root"]["1"]["0"]["name"]);
+
+	for (var i = 0; i < 6; i++) {
+		oData["root"][2][i] = {
+			name: "subitem3-" + i,
+			description: "subitem3-" + i + " description",
+			checked: "Unchecked"
+		};
+	}
+
+	// If self is checked then all my children will be checked too.
+	function setChildState(obj) {
+		var state = obj.checked;
+		for (var child in obj) {
+
+			//console.log(child);
+
+			//判断其为数字元素
+			if (/\D/.test(child) == false) {
+				var c = obj[child];
+				c.checked = state;
+				setChildState(c); //recursively
+			}
+		}
+	}
+
+	function updateParent(obj) {
+		var checked = 0;
+		var unchecked = 0;
+
+		for (var child in obj) {
+
+			console.log("当前节点属性名:" + child + " 值:" + obj[child]);
+			
+			//只会检索当前节点对应的数字属性节点
+			if (/\D/.test(child) == false) {
+				var c = obj[child];
+				//console.log(c.checked);
+				if (c.checked === 'Checked') {
+					
+					console.log(c);
+					
+					checked += 1;
+				} else {
+					unchecked += 1;
+				}
+				
+				console.log("checked:" + checked);
+				console.log("unchecked:" + unchecked);
+				
+				if (checked > 0 && unchecked > 0) {
+					obj.checked = 'Mixed';
+					return;
+				}
+			}
+			if (checked > 0) {
+				obj.checked = 'Checked';
+			} else {
+				obj.checked = 'Unchecked';
+			}
+		}
+	}
+
+	var oTable = new sap.ui.table.TreeTable({
+		columns: [new sap.ui.table.Column({
+			label: "Tree",
+			template: new sap.ui.commons.TriStateCheckBox({
+				text: '{name}',
+				selectionState: '{checked}',
+				change: function(e) {
+					var path = e.getSource().getBindingContext().getPath();
+					var obj = oTable.getModel().getProperty(path);
+
+					//console.log(path)
+					//console.log(obj);
+					//console.log(e.getSource().getBindingContext().getObject());
+
+					setChildState(obj);
+
+					var parentPath = path.substring(0, path.lastIndexOf('/'));
+					while (parentPath !== '/root') {
+
+						console.log(parentPath);
+
+						var parentObj = oTable.getModel().getProperty(parentPath);
+
+						console.log(parentObj);
+
+						updateParent(parentObj);
+						parentPath = parentPath.substring(0, parentPath.lastIndexOf('/'));
+					}
+					oTable.invalidate();
+				}
+			})
+		})],
+		selectionMode: sap.ui.table.SelectionMode.Single,
+		enableColumnReordering: true,
+		expandFirstLevel: true
+	});
+
+	var oModel = new sap.ui.model.json.JSONModel();
+	oModel.setData(oData);
+	oTable.setModel(oModel);
+	oTable.bindRows("/root");
+	oTable.placeAt("content");
+  </script>
+</head>
+
+<body class="sapUiBody">
+
+  <!-- This is where you place the UI5 button -->
+  <div id="content"></div>
+</body>
+
+</html>
